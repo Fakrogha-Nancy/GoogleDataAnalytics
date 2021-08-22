@@ -1,0 +1,130 @@
+---
+title: "Google Data Analytics Capstone Project"
+subtitle: "Case Study 2:How can a wellness technology company play it smart?"
+output: html_notebook
+---
+
+## Scenario
+You are a junior data analyst working on the marketing analyst team at [Bellabeat](https://bellabeat.com/), a high-tech manufacturer of health-focused
+products for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the global smart device market. You have been asked to focus on one of
+Bellabeat’s products and analyze smart device data to gain insight into how consumers are using their smart devices. The
+insights you discover will then help guide marketing strategy for the company. You will present your analysis to the Bellabeat
+executive team along with your high-level recommendations for Bellabeat’s marketing strategy.
+
+## Key Stakeholders
+* Urška Sršen: Cofounder and Chief Creative Officer
+* Sando Mur: Cofounder and Mathematician
+
+## Business Task
+Analyze smart device usage data in order to gain insight into how consumers use non-Bellabeat smart devices, with focus on a Bellabeat product and guiding my analysis with these questions:
+
+* What are some trends in smart device usage?
+* How could these trends apply to Bellabeat customers?
+* How could these trends help influence Bellabeat marketing strategy?
+
+The dataset used for this analysis is the [FitBit Fitness Tracker Data](https://www.kaggle.com/arashnic/fitbit) public data, made available through [Möbius](https://www.kaggle.com/arashnic).
+
+### loading the data
+we would go ahead and set up our working directory as well as import the csv files to be used for our analysis.
+```{r}
+library(tidyverse)
+setwd("/Users/nancy/downloads/names")
+daily_activity <- read_csv("Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+```
+next, we explore our dataset and make observations on the various rows and columns.
+```{r}
+head(daily_activity)
+
+```
+
+we can see that some of our columns consist of only one value (0), this is irrelevant to our analysis, we can select the relevant columns to a new dataframe for further cleaning and drop the columns we do not need using the select() and subset() function.
+
+```{r dropping columns}
+
+clean_daily_activity <- subset(daily_activity, select = -c(SedentaryActiveDistance, LoggedActivitiesDistance))
+
+#confirming our dropped columns
+head(clean_daily_activity)
+
+```
+### cleaning the dataset
+
+we will explore this dataset further to find irregularities, clean the columns or create new columns. First, we convert our ActivityDate column from the character to date class:
+
+```{r}
+library(lubridate)
+clean_daily_activity$ActivityDate <- as.Date(clean_daily_activity$ActivityDate,format = "%m/%d/%Y")
+head(clean_daily_activity)
+```
+
+now, let's create a new column with the active days of the week, we are going to extract the weekday from the ActivityDate column using the weekdays() function:
+```{r}
+# Adding a new column for active days of the week
+clean_daily_activity$Activeday <- weekdays(clean_daily_activity$ActivityDate)
+head(clean_daily_activity)
+
+```
+our active day column has been created. Next, we are going to create a column ranking the total steps daily, we would perform this ranking based on the activity levels outlined in [this article](https://www.10000steps.org.au/articles/counting-steps/) by CQUniversity Australia.
+```{r}
+clean_daily_activity <- clean_daily_activity %>%
+  mutate(clean_daily_activity, step_rank = case_when(
+  TotalSteps < 100 ~ "N/A",
+  TotalSteps >= 100 & TotalSteps < 5000 ~ "sedentary",
+  TotalSteps >= 5000 & TotalSteps < 7500 ~ "low active",
+  TotalSteps >= 7500 & TotalSteps < 10000 ~ "somewhat active",
+  TotalSteps >= 10000 & TotalSteps < 12500 ~ "active",
+  TotalSteps >= 12500 ~ "highly active"))
+```
+let us go ahead and check the number of N/A values in the step_rank column. We will make use of the table() function to check the frequency of each rank.
+```{r}
+
+table(clean_daily_activity$step_rank)
+```
+"N/A" has 87 values, we would go ahead and filter them out as these values would  be outliers.
+```{r}
+# filtering out the "N/A" values in the step_rank column
+clean_daily_activity <- clean_daily_activity %>%
+  filter(step_rank != "N/A")
+
+clean_daily_activity$Activeday <- ordered(clean_daily_activity$Activeday, levels=c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+clean_daily_activity$step_rank <- ordered(clean_daily_activity$step_rank, levels=c("sedentary", "low active", "somewhat active", "active", "highly active"))
+```
+
+### Analyze and visualize our data
+
+Our first visualization would be a count of the active days of the week to ascertain if there is a weekday/weekend pattern:
+```{r}
+ggplot(data = clean_daily_activity) +
+  geom_bar(mapping = aes(x=Activeday), fill="navyblue")
+
+```
+from the active days, we can see that people tend to be more active during the week, maybe employed people or students, our target demography therefore should be people between the ages 18-50, as most students and workers fall within this age range.
+next, let us make a bar chart of our step rank and see how active smart device users are:
+```{r}
+ggplot(data = clean_daily_activity) +
+  geom_bar(mapping = aes(x=step_rank, fill=step_rank))
+
+```
+from our chart, we can see that sedentary(a way of life characterized by much sitting and little exercise) is ranked the most,we are going to plot this again but this time, match it to each individual or unique ID to see if this step rank is the same for each person:
+```{r}
+ggplot(data = clean_daily_activity) +
+  geom_bar(mapping = aes(x=step_rank, fill=step_rank))+
+  facet_wrap(~Id)
+```
+we can see that our individual charts are far from uniform and the sedentary ranking is high in some and very low in others, a good suggestion here would be to tailor our product,specifically the Bellabeat's Time, to fit individual needs and lifestyles, probably a timer or prompt for people working from home at different times during the day to take a brisk walks.
+
+let us explore the total steps and calories columns to see if there is any correlation between steps taken in a day and calories burnt those days as well.
+
+```{r}
+clean_daily_activity %>%
+  ggplot(aes(x=TotalSteps,y=Calories)) + geom_point() + geom_smooth(method = "lm", formula=y~x) + labs(title="Relationship between total steps and calories burnt")
+```
+From our scatterplot, we see that there is a positive correlation between total steps and calories, so the more active a product user is, the more calories they burn, this could be a good point for marketing the need for Bellabeat's Time.
+
+### Recommendations and Conclusion
+
+* Bellabeat's target market should be the demography that is deemed the most active(18-50)
+* product should be tailored to each users profile to find what works for the and how best to utilize the product.
+
+In conclusion, Bellabeat has a large market of the active population trying to adopt healthier lifestyles, giving the user a personalized feel of the product should help acquire more users.
