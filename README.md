@@ -1,0 +1,3 @@
+# GoogleDataAnalytics
+This is the case study 1 in the capstone project of the google data analytics course on coursera
+In this case study, i performed data analysis for [Bellabeat](https://bellabeat.com/), a high-tech manufacturer of health-focused products for women. i analyzed smart device data to gain insight into how consumers are using their smart devices. my analysis will help guide future marketing strategies for my team. Along the way, i performed numerous real-world tasks of a junior data analyst by following the steps of the data analysis process: Ask, Prepare, Process, Analyze, Share, and Act. 
